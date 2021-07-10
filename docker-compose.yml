@@ -1,43 +1,75 @@
-version: '2'
+version: '3.2'
 services:
 
   # The Application
-  app:
+  workspace:
     build:
       context: ./
       dockerfile: app.dockerfile
+    container_name: app-workspace
     working_dir: /var/www
+    ports:
+    - 9000
     volumes:
-      - ./application/:/var/www
-    environment:
-      - "DB_PORT=3306"
-      - "host=localhost"
+      - ../app/:/var/www
+    networks:
+      - app
 
   # The Web Server
-  web:
-    build:
-      context: ./
-      dockerfile: web.dockerfile
-    working_dir: /var/www
-    volumes_from:
-      - app
-    links:
-      - app
+  nginx:
+    image: nginx:latest
+    container_name: app-nginx
+    restart: unless-stopped
     ports:
-      - 8091:80
+      - 80:80
+    volumes:
+      - ../app:/var/www
+      - /etc/localtime:/etc/localtime:ro
+      - ./nginx:/etc/nginx/conf.d/
+    working_dir: /var/www
+    networks:
+      - app
 
   # The Database
-  database:
-    image: mysql:5.7
+  mariadb:
+    image: mariadb:latest
+    container_name: app-database
     volumes:
-      - db:/var/lib/mysql
+      - ./db-data:/var/lib/mysql:delegated
+      - /etc/localtime:/etc/localtime:ro
     environment:
-      - "MYSQL_DATABASE=laravel"
-      - "MYSQL_USER=laravel"
-      - "MYSQL_PASSWORD=laravel"
+      - "MYSQL_DATABASE=app"
+      - "MYSQL_USER=root"
+      - "MYSQL_PASSWORD=secret"
       - "MYSQL_ROOT_PASSWORD=secret"
     ports:
-        - "33062:3306"
+      - 3306:3306
+    networks:
+      - app
 
-volumes:
-  db:
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: app-phpmyadmin
+    ports:
+      - 8080:80
+    environment:
+      - 'PMA_HOST=mariadb'
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - app
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: app-mailhog
+    ports:
+      - 8025:8025
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge
+
