@@ -11,7 +11,7 @@ services:
     ports:
     - 9000
     volumes:
-      - ../app/:/var/www
+      - ../app:/var/www
     networks:
       - app
 
@@ -26,7 +26,6 @@ services:
       - ../app:/var/www
       - /etc/localtime:/etc/localtime:ro
       - ./nginx:/etc/nginx/conf.d/
-    working_dir: /var/www
     networks:
       - app
 
